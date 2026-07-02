@@ -604,9 +604,9 @@ export default function App() {
                   </div>
                 ))}
 
-                {/* Fila TOTAL */}
+                {/* Fila TOTAL F.TURNO */}
                 <div style={{display:"flex", alignItems:"center", borderTop:"2px solid #D4CEC0", marginTop:2}}>
-                  <div style={{width:90, flexShrink:0, fontSize:11.5, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0"}}>TOTAL</div>
+                  <div style={{width:90, flexShrink:0, fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0"}}>TOTAL F.TURNO</div>
                   {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                     const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
                     const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
@@ -614,6 +614,21 @@ export default function App() {
                     return (
                       <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
                         {count > 0 ? count : ""}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Fila TOTAL EN TURNO = 12 menos los que pidieron ese día */}
+                <div style={{display:"flex", alignItems:"center", borderTop:"1px solid #D4CEC0", marginTop:2}}>
+                  <div style={{width:90, flexShrink:0, fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0"}}>TOTAL EN TURNO</div>
+                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                    const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                    const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
+                    const enTurno = 12 - count;
+                    return (
+                      <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
+                        {enTurno}
                       </div>
                     );
                   })}
