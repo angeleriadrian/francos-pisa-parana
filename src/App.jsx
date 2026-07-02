@@ -252,8 +252,8 @@ export default function App() {
       setErrorLogin("Contraseña incorrecta.");
       return;
     }
-    if (limpio[0] !== limpio[0].toUpperCase()) {
-      setErrorLogin("El nombre debe comenzar con mayúscula. Ejemplo: \"Angeleri\".");
+    if (!/^[A-ZÁÉÍÓÚÑÜ]/.test(limpio)) {
+      setErrorLogin(`El nombre debe empezar con mayúscula. Escribilo así: "${limpio.charAt(0).toUpperCase() + limpio.slice(1)}"`);
       return;
     }
     setErrorLogin(null);
