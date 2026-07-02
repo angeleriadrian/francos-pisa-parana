@@ -578,7 +578,7 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Filas por persona */}
+                {/* Filas por persona — excluye cuentas compartidas */}
                 {personas.filter(p => !CUENTAS_COMPARTIDAS[p.trim().toLowerCase()]).map(persona => (
                   <div key={persona} style={{display:"flex", alignItems:"center", borderTop:"1px solid #EFEBDE"}}>
                     <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{persona}</div>
@@ -591,6 +591,16 @@ export default function App() {
                           style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background: t ? t.color : "transparent", opacity: 1, border:"1px solid #F0ECE3"}}/>
                       );
                     })}
+                  </div>
+                ))}
+
+                {/* Fila fija de karp/suarez — siempre al final, celdas en blanco */}
+                {Object.keys(CUENTAS_COMPARTIDAS).map(cuenta => (
+                  <div key={cuenta} style={{display:"flex", alignItems:"center", borderTop:"1px solid #EFEBDE"}}>
+                    <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{cuenta}</div>
+                    {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
+                      <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3"}}/>
+                    ))}
                   </div>
                 ))}
 
@@ -653,13 +663,15 @@ export default function App() {
                 <tbody>
                   {todosLosUsuarios.map(persona => {
                     const parejaDePersona = CUENTAS_COMPARTIDAS[persona.trim().toLowerCase()] || null;
-                    const activasPersona = solicitudes.filter(s => s.nombre === persona && s.estado !== "rechazada");
+                    const activasPersona = solicitudes.filter(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada");
                     const diasMes = activasPersona.flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.startsWith(claveMesActual)).length;
                     const limiteAnio = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-31`;
                     const diasAnio = activasPersona.flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.startsWith(String(anioActual)) && d <= limiteAnio).length;
 
                     if (parejaDePersona) {
-                      const tramos = activasPersona.filter(s => dateRange(s.desde, s.hasta).some(d => d.startsWith(claveMesActual))).sort((a,b) => a.desde < b.desde ? -1 : 1);
+                      const tramos = solicitudes
+                        .filter(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).some(d => d.startsWith(claveMesActual)))
+                        .sort((a,b) => a.desde < b.desde ? -1 : 1);
                       return (
                         <tr key={persona} style={{borderTop:"1px solid #EFEBDE"}}>
                           <td style={{...td, fontWeight:600}}>{persona}</td>
