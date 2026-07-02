@@ -75,6 +75,7 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
     s => s.nombre === persona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
   );
 
+  // Si estamos en 2026 desde julio en adelante, arrancamos con el saldo inicial cargado.
   if (anio === 2026 && mesNum >= 7) {
     const saldoBase = SALDO_INICIAL[clavePersona] ?? 0;
     let balance = saldoBase;
@@ -90,6 +91,37 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
     return balance;
   }
 
+  // Para enero/febrero/marzo: no se suman días nuevos pero sí se arrastra
+  // el saldo del diciembre anterior. Calculamos diciembre del año previo y
+  // descontamos lo usado en los meses de enero a mesNum del año actual.
+  if (mesNum <= 3) {
+    // Calcular saldo al cierre de diciembre del año anterior
+    let balanceDic = 0;
+    const anioAnterior = anio - 1;
+    const activasAnioAnterior = solicitudes.filter(
+      s => s.nombre === persona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
+    );
+    for (let mes = 1; mes <= 12; mes++) {
+      const claveMes = `${anioAnterior}-${String(mes).padStart(2, "0")}`;
+      const usadoEseMes = activasAnioAnterior
+        .flatMap(s => dateRange(s.desde, s.hasta))
+        .filter(d => d.startsWith(claveMes)).length;
+      const acreditado = mes <= 3 ? 0 : mes === 7 ? 3 : mes === 12 ? 7 : 10;
+      balanceDic = Math.min(30, balanceDic + acreditado) - usadoEseMes;
+    }
+    // Descontar lo usado en enero/febrero/marzo del año actual
+    let balance = balanceDic;
+    for (let mes = 1; mes <= mesNum; mes++) {
+      const claveMes = `${anio}-${String(mes).padStart(2, "0")}`;
+      const usadoEseMes = activasPersona
+        .flatMap(s => dateRange(s.desde, s.hasta))
+        .filter(d => d.startsWith(claveMes)).length;
+      balance -= usadoEseMes; // no se suman días nuevos (acreditado = 0)
+    }
+    return balance;
+  }
+
+  // Resto del año: cálculo normal desde enero.
   let balance = 0;
   for (let mes = 1; mes <= mesNum; mes++) {
     const claveMes = `${anio}-${String(mes).padStart(2, "0")}`;
@@ -263,16 +295,17 @@ export default function App() {
         setError(`La licencia especial tiene que ser de más de 10 días. Pediste ${diasPedidos.length}.`); return;
       }
 
-      let avisoCupo = null;
       if (form.tipo === "mensual" || form.tipo === "especial") {
         for (const dia of diasPedidos) {
-          const personas = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
-          if (personas.size >= 4 && !personas.has(nombre)) {
-            avisoCupo = `Atención: ya hay ${personas.size} personas fuera de turno el ${fmt(dia)}, que es el máximo.`;
-            break;
+          const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
+          if (personasEseDia.size >= 4 && !personasEseDia.has(nombre)) {
+            setError(`No se puede pedir: el ${fmt(dia)} ya hay 4 personas con Franco o Licencia especial, que es el máximo permitido.`);
+            return;
           }
         }
       }
+
+      let avisoCupo = null;
 
       let tipoFinal = form.tipo;
       if (!parejaCompartida) {
@@ -291,7 +324,6 @@ export default function App() {
       }
 
       const avisos = [];
-      if (avisoCupo) avisos.push(avisoCupo);
       if (tipoFinal !== form.tipo) avisos.push(`Se guardó como "${TIPOS.especial.label}" por superar los 10 días del mes.`);
       if (tipoFinal === "especial" && !parejaCompartida) {
         const saldoAntes = diasAcumulados(nombre, solicitudes);
