@@ -593,84 +593,72 @@ export default function App() {
             {personas.length === 0 ? (
               <div style={{textAlign:"center", padding:50, color:"#A39A89"}}>Todavía no hay licencias. Usá "Pedir licencia" para crear la primera.</div>
             ) : (
-              <div style={{width: 90 + daysInMonth(anioActual, mesActual) * 26, maxWidth:"100%"}}>
-                {/* Encabezado días — mismas celdas que las filas */}
-                <div style={{display:"flex"}}>
-                  <div style={{width:90, flexShrink:0}}/>
-                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
-                    const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                    const esHoy = dateStr === hoy.toISOString().slice(0,10);
-                    const letraDia = DIAS_SEMANA[(new Date(anioActual, mesActual, d).getDay()+6)%7];
-                    return (
-                      <div key={d} style={{
-                        width:26, height:32, flexShrink:0, margin:"3px 0px", borderRadius:6,
-                        background: esHoy ? "#1C5A66" : "#F0ECE3",
-                        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                        fontSize:9, fontWeight:700,
-                        color: esHoy ? "#fff" : "#8A8170",
-                      }}>
-                        <span>{letraDia}</span>
-                        <span style={{fontSize:10.5}}>{d}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div style={{display:"grid", gridTemplateColumns:`90px repeat(${daysInMonth(anioActual, mesActual)}, 1fr)`, minWidth: 90 + daysInMonth(anioActual, mesActual) * 26}}>
+                {/* Encabezado días */}
+                <div/>
+                {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                  const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const esHoy = dateStr === hoy.toISOString().slice(0,10);
+                  const letraDia = DIAS_SEMANA[(new Date(anioActual, mesActual, d).getDay()+6)%7];
+                  return (
+                    <div key={d} style={{
+                      margin:"3px 1px", borderRadius:6, height:32,
+                      background: esHoy ? "#1C5A66" : "#F0ECE3",
+                      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                      fontSize:9, fontWeight:700, color: esHoy ? "#fff" : "#8A8170",
+                    }}>
+                      <span>{letraDia}</span>
+                      <span style={{fontSize:10.5}}>{d}</span>
+                    </div>
+                  );
+                })}
 
                 {/* Filas por persona — excluye cuentas compartidas */}
-                {personas.filter(p => !CUENTAS_COMPARTIDAS[p.trim().toLowerCase()]).map(persona => (
-                  <div key={persona} style={{display:"flex", alignItems:"center", borderTop:"1px solid #EFEBDE"}}>
-                    <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{persona}</div>
-                    {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
-                      const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                      const ev = solicitudes.find(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).includes(dateStr));
-                      const t = ev ? TIPOS[ev.tipo] : null;
-                      return (
-                        <div key={d} title={ev ? `${t.label}` : ""}
-                          style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background: t ? t.color : "transparent", opacity: 1, border:"1px solid #F0ECE3"}}/>
-                      );
-                    })}
-                  </div>
-                ))}
+                {personas.filter(p => !CUENTAS_COMPARTIDAS[p.trim().toLowerCase()]).map(persona => (<>
+                  <div key={`n-${persona}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{persona}</div>
+                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                    const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                    const ev = solicitudes.find(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).includes(dateStr));
+                    const t = ev ? TIPOS[ev.tipo] : null;
+                    return (
+                      <div key={d} title={ev ? `${t.label}` : ""}
+                        style={{margin:"3px 1px", borderRadius:6, background: t ? t.color : "transparent", border:"1px solid #F0ECE3", borderTop:"1px solid #EFEBDE"}}/>
+                    );
+                  })}
+                </>))}
 
                 {/* Fila fija de karp/suarez — siempre al final, celdas en blanco */}
-                {Object.keys(CUENTAS_COMPARTIDAS).map(cuenta => (
-                  <div key={cuenta} style={{display:"flex", alignItems:"center", borderTop:"1px solid #EFEBDE"}}>
-                    <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{cuenta}</div>
-                    {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
-                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3"}}/>
-                    ))}
-                  </div>
-                ))}
+                {Object.keys(CUENTAS_COMPARTIDAS).map(cuenta => (<>
+                  <div key={`n-${cuenta}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{cuenta}</div>
+                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
+                    <div key={d} style={{margin:"3px 1px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3", borderTop:"1px solid #EFEBDE"}}/>
+                  ))}
+                </>))}
 
                 {/* Fila TOTAL F.TURNO */}
-                <div style={{display:"flex", alignItems:"center", borderTop:"2px solid #D4CEC0", marginTop:2}}>
-                  <div style={{width:90, flexShrink:0, fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0"}}>TOTAL F.TURNO</div>
-                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
-                    const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                    const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
-                    const superado = count > 4;
-                    return (
-                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
-                        {count > 0 ? count : ""}
-                      </div>
-                    );
-                  })}
-                </div>
+                <div style={{fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"2px solid #D4CEC0", display:"flex", alignItems:"center"}}>TOTAL F.TURNO</div>
+                {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                  const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
+                  const superado = count > 4;
+                  return (
+                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"2px solid #D4CEC0", background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
+                      {count > 0 ? count : ""}
+                    </div>
+                  );
+                })}
 
-                {/* Fila TOTAL EN TURNO = 12 menos los que pidieron ese día */}
-                <div style={{display:"flex", alignItems:"center", borderTop:"1px solid #D4CEC0", marginTop:2}}>
-                  <div style={{width:90, flexShrink:0, fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0"}}>TOTAL EN TURNO</div>
-                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
-                    const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                    const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
-                    const enTurno = 12 - count;
-                    return (
-                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
-                        {enTurno}
-                      </div>
-                    );
-                  })}
-                </div>
+                {/* Fila TOTAL EN TURNO */}
+                <div style={{fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"1px solid #D4CEC0", display:"flex", alignItems:"center"}}>TOTAL EN TURNO</div>
+                {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                  const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
+                  return (
+                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"1px solid #D4CEC0", background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
+                      {12 - count}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
