@@ -388,6 +388,21 @@ export default function App() {
     }
   }
 
+  async function normalizarNombresFirebase() {
+    if (!esAdmin) return;
+    let corregidos = 0;
+    for (const s of solicitudes) {
+      const normalizado = s.nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+      if (s.nombre !== normalizado) {
+        try {
+          await setDoc(doc(db, "solicitudes", s.id), { ...s, nombre: normalizado });
+          corregidos++;
+        } catch (e) { console.error("Error corrigiendo", s.id, e); }
+      }
+    }
+    setAviso(`✅ Listo. Se corrigieron ${corregidos} solicitudes con nombres mal escritos.`);
+  }
+
   async function eliminarSolicitud(id) {
     if (esSoloLectura) return;
     const item = solicitudes.find(s => s.id === id);
@@ -505,6 +520,12 @@ export default function App() {
           </div>
         </div>
         <div style={{display:"flex", alignItems:"center", gap:8}}>
+          {esAdmin && (
+            <button onClick={normalizarNombresFirebase}
+              style={{background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:12, padding:"10px 14px", fontWeight:600, fontSize:12, cursor:"pointer"}}>
+              🔧 Normalizar nombres
+            </button>
+          )}
           <button onClick={() => { setErrorClave(null); setAvisoClave(null); setClaveActualInput(""); setClaveNuevaInput(""); setClaveNuevaInput2(""); setModalClaveAbierto(true); }}
             style={{background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", borderRadius:12, padding:"10px 14px", fontWeight:600, fontSize:13, cursor:"pointer"}}>
             Mi contraseña
