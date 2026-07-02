@@ -73,7 +73,7 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
   const clavePersona = persona.trim().toLowerCase();
 
   const activasPersona = solicitudes.filter(
-    s => s.nombre === persona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
+    s => s.nombre.trim().toLowerCase() === clavePersona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
   );
 
   // Si estamos en 2026 desde julio en adelante, arrancamos con el saldo inicial cargado.
@@ -100,7 +100,7 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
     let balanceDic = 0;
     const anioAnterior = anio - 1;
     const activasAnioAnterior = solicitudes.filter(
-      s => s.nombre === persona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
+      s => s.nombre.trim().toLowerCase() === clavePersona && s.estado !== "rechazada" && (s.tipo === "mensual" || s.tipo === "especial")
     );
     for (let mes = 1; mes <= 12; mes++) {
       const claveMes = `${anioAnterior}-${String(mes).padStart(2, "0")}`;
@@ -616,11 +616,11 @@ export default function App() {
                     <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{persona}</div>
                     {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                       const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                      const ev = solicitudes.find(s => s.nombre === persona && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).includes(dateStr));
+                      const ev = solicitudes.find(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).includes(dateStr));
                       const t = ev ? TIPOS[ev.tipo] : null;
                       return (
                         <div key={d} title={ev ? `${t.label}` : ""}
-                          style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background: t ? t.color : "transparent", opacity: 1, border:"1px solid #F0ECE3"}}/>
+                          style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background: t ? t.color : "transparent", opacity: 1, border:"1px solid #F0ECE3"}}/>
                       );
                     })}
                   </div>
@@ -631,7 +631,7 @@ export default function App() {
                   <div key={cuenta} style={{display:"flex", alignItems:"center", borderTop:"1px solid #EFEBDE"}}>
                     <div style={{width:90, flexShrink:0, fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{cuenta}</div>
                     {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
-                      <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3"}}/>
+                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3"}}/>
                     ))}
                   </div>
                 ))}
@@ -644,7 +644,7 @@ export default function App() {
                     const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                     const superado = count > 4;
                     return (
-                      <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
+                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
                         {count > 0 ? count : ""}
                       </div>
                     );
@@ -659,7 +659,7 @@ export default function App() {
                     const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                     const enTurno = 12 - count;
                     return (
-                      <div key={d} style={{width:24, height:24, flexShrink:0, margin:"3px 1px", borderRadius:6, background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
+                      <div key={d} style={{width:26, height:24, flexShrink:0, margin:"3px 0px", borderRadius:6, background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
                         {enTurno}
                       </div>
                     );
