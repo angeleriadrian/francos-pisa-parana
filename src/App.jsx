@@ -25,6 +25,7 @@ const AUTORIZADOS = {
 };
 
 const SOLO_LECTURA = ["pisa guardia", "chemez"];
+const ADMINS = ["angeleri"];
 
 const CUENTAS_COMPARTIDAS = {
   "karp/suarez": ["Karp", "Suarez"],
@@ -265,6 +266,7 @@ export default function App() {
   }
 
   const esSoloLectura = SOLO_LECTURA.some(u => u.trim().toLowerCase() === nombre.trim().toLowerCase());
+  const esAdmin = ADMINS.some(u => u.trim().toLowerCase() === nombre.trim().toLowerCase());
   const parejaCompartida = CUENTAS_COMPARTIDAS[nombre.trim().toLowerCase()] || null;
 
   async function crearSolicitud() {
@@ -384,7 +386,7 @@ export default function App() {
   async function eliminarSolicitud(id) {
     if (esSoloLectura) return;
     const item = solicitudes.find(s => s.id === id);
-    if (item && item.tipo === "mensual" && !CUENTAS_COMPARTIDAS[item.nombre.trim().toLowerCase()]) {
+    if (!esAdmin && item && item.tipo === "mensual" && !CUENTAS_COMPARTIDAS[item.nombre.trim().toLowerCase()]) {
       const fechaDesde = new Date(item.desde + "T00:00:00");
       if ((fechaDesde.getTime() - Date.now()) / 3600000 < 72) {
         setError(`No se puede eliminar este Franco: el plazo de 72 horas antes del ${fmt(item.desde)} ya venció.`);
@@ -682,7 +684,7 @@ export default function App() {
                           <span style={{fontWeight:600, color:"#2B2620"}}>{s.nombre}</span>
                           <span style={{color:"#8A8170"}}>{s.quien?`${s.quien} · `:""}{t.label} · {fmt(s.desde)} a {fmt(s.hasta)}</span>
                           <span style={{color:"#B0BAB9", fontSize:11.5, marginLeft:"auto", whiteSpace:"nowrap"}}>{s.creada ? fmt(new Date(s.creada).toISOString()) : "—"}</span>
-                          {!esSoloLectura && s.nombre === nombre && (
+                          {!esSoloLectura && (esAdmin || s.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()) && (
                             <button onClick={() => eliminarSolicitud(s.id)} title="Eliminar" style={iconBtn("#8A8170")}><Trash2 size={13}/></button>
                           )}
                         </div>
