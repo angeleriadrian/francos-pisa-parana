@@ -176,7 +176,7 @@ export default function App() {
       const guardado = localStorage.getItem("francos_recordarme");
       if (guardado) {
         const { nombreGuardado, claveGuardada } = JSON.parse(guardado);
-        if (nombreGuardado) setNombre(nombreGuardado);
+        if (nombreGuardado) setNombre(nombreGuardado.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase()));
         if (claveGuardada) setClave(claveGuardada);
         setRecordarme(true);
       }
@@ -361,6 +361,7 @@ export default function App() {
       if (avisos.length > 0) setAviso(avisos.join(" "));
 
       const nombreNormalizado = nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+      console.log("Guardando solicitud con nombre:", nombreNormalizado);
       const nueva = {
         nombre: nombreNormalizado,
         quien: parejaCompartida ? form.quien : "",
@@ -635,8 +636,8 @@ export default function App() {
                   ))}
                 </>))}
 
-                {/* Fila TOTAL F.TURNO */}
-                <div style={{fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"2px solid #D4CEC0", display:"flex", alignItems:"center"}}>TOTAL F.TURNO</div>
+                {/* Fila FUERA DE TURNO */}
+                <div style={{fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"2px solid #D4CEC0", display:"flex", alignItems:"center"}}>FUERA DE TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
                   const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
@@ -648,8 +649,8 @@ export default function App() {
                   );
                 })}
 
-                {/* Fila TOTAL EN TURNO */}
-                <div style={{fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"1px solid #D4CEC0", display:"flex", alignItems:"center"}}>TOTAL EN TURNO</div>
+                {/* Fila EN TURNO */}
+                <div style={{fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"1px solid #D4CEC0", display:"flex", alignItems:"center"}}>EN TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
                   const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
