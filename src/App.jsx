@@ -153,6 +153,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [errorLogin, setErrorLogin] = useState(null);
   const [clave, setClave] = useState("");
+  const [recordarme, setRecordarme] = useState(false);
   const [clavesOverride, setClavesOverride] = useState({});
   const [modalClaveAbierto, setModalClaveAbierto] = useState(false);
   const [claveActualInput, setClaveActualInput] = useState("");
@@ -167,6 +168,19 @@ export default function App() {
   const [mesActual, setMesActual] = useState(hoy.getMonth());
   const [anioActual, setAnioActual] = useState(hoy.getFullYear());
   const [form, setForm] = useState({ tipo: "vacaciones", desde: "", hasta: "", quien: "" });
+
+  // Cargar credenciales guardadas (Recordarme)
+  useEffect(() => {
+    try {
+      const guardado = localStorage.getItem("francos_recordarme");
+      if (guardado) {
+        const { nombreGuardado, claveGuardada } = JSON.parse(guardado);
+        if (nombreGuardado) setNombre(nombreGuardado);
+        if (claveGuardada) setClave(claveGuardada);
+        setRecordarme(true);
+      }
+    } catch (e) { /* ignore */ }
+  }, []);
 
   // Suscripción en tiempo real a Firestore
   useEffect(() => {
@@ -238,6 +252,15 @@ export default function App() {
       return;
     }
     setErrorLogin(null);
+    const nombreFinal = limpio.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+    setNombre(nombreFinal);
+    if (recordarme) {
+      try {
+        localStorage.setItem("francos_recordarme", JSON.stringify({ nombreGuardado: nombreFinal, claveGuardada: clave }));
+      } catch (e) { /* ignore */ }
+    } else {
+      try { localStorage.removeItem("francos_recordarme"); } catch (e) { /* ignore */ }
+    }
     setRegistrado(true);
   }
 
@@ -335,8 +358,9 @@ export default function App() {
       }
       if (avisos.length > 0) setAviso(avisos.join(" "));
 
+      const nombreNormalizado = nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
       const nueva = {
-        nombre,
+        nombre: nombreNormalizado,
         quien: parejaCompartida ? form.quien : "",
         tipo: tipoFinal,
         desde: form.desde,
@@ -427,6 +451,12 @@ export default function App() {
               style={{...inp, marginBottom:12}}/>;
           })()}
           {errorLogin && <div style={{background:"#FAE9DD", border:"1px solid #E8B98C", color:"#C4622D", padding:"9px 12px", borderRadius:10, marginBottom:14, fontSize:13, fontFamily:"system-ui"}}>{errorLogin}</div>}
+          <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14, cursor:"pointer"}} onClick={() => setRecordarme(r => !r)}>
+            <div style={{width:20, height:20, borderRadius:6, border:`2px solid ${recordarme ? "#1C5A66" : "#D9D2C4"}`, background: recordarme ? "#1C5A66" : "#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
+              {recordarme && <span style={{color:"#fff", fontSize:13, fontWeight:700}}>✓</span>}
+            </div>
+            <span style={{fontSize:13.5, color:"#5C5448", fontFamily:"system-ui", userSelect:"none"}}>Recordar usuario y contraseña</span>
+          </div>
           <button onClick={intentarEntrar} disabled={!nombre.trim()}
             style={{width:"100%", padding:"12px 14px", background: nombre.trim() ? "linear-gradient(135deg,#1C5A66,#2D7A8A)":"#D7DEDD", color:"#fff", border:"none", borderRadius:12, fontSize:15, fontWeight:700, fontFamily:"system-ui", cursor: nombre.trim()?"pointer":"default", boxShadow: nombre.trim()?"0 8px 18px -6px rgba(28,90,102,0.5)":"none"}}>
             Entrar
