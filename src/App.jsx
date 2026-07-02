@@ -265,9 +265,10 @@ export default function App() {
     setRegistrado(true);
   }
 
-  const esSoloLectura = SOLO_LECTURA.some(u => u.trim().toLowerCase() === nombre.trim().toLowerCase());
-  const esAdmin = ADMINS.some(u => u.trim().toLowerCase() === nombre.trim().toLowerCase());
-  const parejaCompartida = CUENTAS_COMPARTIDAS[nombre.trim().toLowerCase()] || null;
+  const nombreNormal = nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+  const esSoloLectura = SOLO_LECTURA.some(u => u.trim().toLowerCase() === nombreNormal.trim().toLowerCase());
+  const esAdmin = ADMINS.some(u => u.trim().toLowerCase() === nombreNormal.trim().toLowerCase());
+  const parejaCompartida = CUENTAS_COMPARTIDAS[nombreNormal.trim().toLowerCase()] || null;
 
   async function crearSolicitud() {
     if (!form.desde || !form.hasta || !nombre || enviando || esSoloLectura) return;
@@ -360,8 +361,7 @@ export default function App() {
       }
       if (avisos.length > 0) setAviso(avisos.join(" "));
 
-      const nombreNormalizado = nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
-      console.log("Guardando solicitud con nombre:", nombreNormalizado);
+      const nombreNormalizado = nombreNormal;
       const nueva = {
         nombre: nombreNormalizado,
         quien: parejaCompartida ? form.quien : "",
@@ -495,7 +495,7 @@ export default function App() {
           <div>
             <div style={{fontFamily:"Georgia,serif", fontSize:19, fontWeight:700, color:"#fff", letterSpacing:"-0.01em"}}>Francos PISA Paraná</div>
             <div style={{fontSize:12.5, color:"rgba(255,255,255,0.75)", display:"flex", alignItems:"center", gap:5, marginTop:1}}>
-              <User size={12}/> {nombre}
+              <User size={12}/> {nombreNormal}
               {esSoloLectura ? " · Solo lectura" : parejaCompartida ? " · Cuenta compartida" : ` · ${diasAcumulados(nombre, solicitudes)} días acumulados`}
             </div>
           </div>
