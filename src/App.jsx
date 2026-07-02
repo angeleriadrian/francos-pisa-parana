@@ -593,7 +593,7 @@ export default function App() {
             {personas.length === 0 ? (
               <div style={{textAlign:"center", padding:50, color:"#A39A89"}}>Todavía no hay licencias. Usá "Pedir licencia" para crear la primera.</div>
             ) : (
-              <div style={{minWidth: 90 + daysInMonth(anioActual, mesActual) * 26}}>
+              <div style={{width: 90 + daysInMonth(anioActual, mesActual) * 26, maxWidth:"100%"}}>
                 {/* Encabezado días */}
                 <div style={{display:"flex"}}>
                   <div style={{width:90, flexShrink:0}}/>
@@ -602,7 +602,7 @@ export default function App() {
                     const esHoy = dateStr === hoy.toISOString().slice(0,10);
                     const letraDia = DIAS_SEMANA[(new Date(anioActual, mesActual, d).getDay()+6)%7];
                     return (
-                      <div key={d} style={{width:26, flexShrink:0, textAlign:"center", fontSize:10.5, color: esHoy?"#1C5A66":"#A39A89", fontWeight: esHoy?800:600, paddingBottom:4, borderBottom: esHoy?"2px solid #1C5A66":"2px solid transparent"}}>
+                      <div key={d} style={{width:26, flexShrink:0, textAlign:"center", fontSize:10.5, color: esHoy?"#1C5A66":"#A39A89", fontWeight: esHoy?800:600, paddingBottom:4, borderBottom: esHoy?"2px solid #1C5A66":"2px solid transparent", display:"flex", flexDirection:"column", alignItems:"center"}}>
                         <div style={{fontSize:9, opacity:0.75}}>{letraDia}</div>
                         {d}
                       </div>
