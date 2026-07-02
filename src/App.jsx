@@ -594,7 +594,7 @@ export default function App() {
               <div style={{textAlign:"center", padding:50, color:"#A39A89"}}>Todavía no hay licencias. Usá "Pedir licencia" para crear la primera.</div>
             ) : (
               <div style={{width: 90 + daysInMonth(anioActual, mesActual) * 26, maxWidth:"100%"}}>
-                {/* Encabezado días */}
+                {/* Encabezado días — mismas celdas que las filas */}
                 <div style={{display:"flex"}}>
                   <div style={{width:90, flexShrink:0}}/>
                   {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
@@ -602,9 +602,15 @@ export default function App() {
                     const esHoy = dateStr === hoy.toISOString().slice(0,10);
                     const letraDia = DIAS_SEMANA[(new Date(anioActual, mesActual, d).getDay()+6)%7];
                     return (
-                      <div key={d} style={{width:26, flexShrink:0, textAlign:"center", fontSize:10.5, color: esHoy?"#1C5A66":"#A39A89", fontWeight: esHoy?800:600, paddingBottom:4, borderBottom: esHoy?"2px solid #1C5A66":"2px solid transparent", display:"flex", flexDirection:"column", alignItems:"center"}}>
-                        <div style={{fontSize:9, opacity:0.75}}>{letraDia}</div>
-                        {d}
+                      <div key={d} style={{
+                        width:26, height:32, flexShrink:0, margin:"3px 0px", borderRadius:6,
+                        background: esHoy ? "#1C5A66" : "#F0ECE3",
+                        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                        fontSize:9, fontWeight:700,
+                        color: esHoy ? "#fff" : "#8A8170",
+                      }}>
+                        <span>{letraDia}</span>
+                        <span style={{fontSize:10.5}}>{d}</span>
                       </div>
                     );
                   })}
