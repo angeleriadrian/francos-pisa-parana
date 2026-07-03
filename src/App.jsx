@@ -176,7 +176,7 @@ export default function App() {
       const guardado = localStorage.getItem("francos_recordarme");
       if (guardado) {
         const { nombreGuardado, claveGuardada } = JSON.parse(guardado);
-        if (nombreGuardado) setNombre(nombreGuardado.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase()));
+        if (nombreGuardado) setNombre(nombreGuardado.trim().toLowerCase().replace(/(?:^|[\s/])\S/g, l => l.toUpperCase()));
         if (claveGuardada) setClave(claveGuardada);
         setRecordarme(true);
       }
@@ -257,7 +257,7 @@ export default function App() {
       return;
     }
     setErrorLogin(null);
-    const nombreFinal = limpio.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+    const nombreFinal = limpio.trim().toLowerCase().replace(/(?:^|[\s/])\S/g, l => l.toUpperCase());
     setNombre(nombreFinal);
     if (recordarme) {
       try {
@@ -269,7 +269,7 @@ export default function App() {
     setRegistrado(true);
   }
 
-  const nombreNormal = nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+  const nombreNormal = nombre.trim().toLowerCase().replace(/(?:^|[\s/])\S/g, l => l.toUpperCase());
   const esSoloLectura = SOLO_LECTURA.some(u => u.trim().toLowerCase() === nombreNormal.trim().toLowerCase());
   const esAdmin = ADMINS.some(u => u.trim().toLowerCase() === nombreNormal.trim().toLowerCase());
   const parejaCompartida = CUENTAS_COMPARTIDAS[nombreNormal.trim().toLowerCase()] || null;
@@ -390,9 +390,11 @@ export default function App() {
 
   async function normalizarNombresFirebase() {
     if (!esAdmin) return;
+    const normalizar = (str) => str.trim().toLowerCase()
+      .replace(/(?:^|[\s/])\S/g, l => l.toUpperCase());
     let corregidos = 0;
     for (const s of solicitudes) {
-      const normalizado = s.nombre.trim().toLowerCase().replace(/(?:^|\s)\S/g, l => l.toUpperCase());
+      const normalizado = normalizar(s.nombre);
       if (s.nombre !== normalizado) {
         try {
           await setDoc(doc(db, "solicitudes", s.id), { ...s, nombre: normalizado });
