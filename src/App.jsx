@@ -344,13 +344,17 @@ export default function App() {
       if (!parejaCompartida) {
         const meses = new Set(diasPedidos.map(d => d.slice(0, 7)));
         for (const mes of meses) {
-          const yaUsados = activas.filter(s => s.nombre === nombre && (s.tipo === "mensual" || s.tipo === "especial")).flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.slice(0,7) === mes).length;
           const nuevos = diasPedidos.filter(d => d.slice(0,7) === mes).length;
-          if (yaUsados + nuevos > 10) {
-            if (form.tipo === "mensual") tipoFinal = "especial";
-            else if (form.tipo === "especial") {
+          if (form.tipo === "mensual") {
+            // Franco: suma con lo ya usado (franco + especial) no puede superar 10
+            const yaUsados = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase() && (s.tipo === "mensual" || s.tipo === "especial")).flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.slice(0,7) === mes).length;
+            if (yaUsados + nuevos > 10) tipoFinal = "especial";
+          } else if (form.tipo === "especial") {
+            // Especial: solo bloquea si ya hay francos ese mes y la suma supera 10
+            const francosEseMes = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase() && s.tipo === "mensual").flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.slice(0,7) === mes).length;
+            if (francosEseMes > 0 && francosEseMes + nuevos > 10) {
               const [, m] = mes.split("-").map(Number);
-              setError(`En ${MESES[m-1]} ya tenés ${yaUsados} días entre Franco y Especial. La suma no puede superar 10 días.`); return;
+              setError(`En ${MESES[m-1]} ya tenés ${francosEseMes} días de Franco. Sumado a los ${nuevos} días de la Licencia especial supera el máximo de 10 días por mes.`); return;
             }
           }
         }
@@ -630,13 +634,15 @@ export default function App() {
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
                   const esHoy = dateStr === hoy.toISOString().slice(0,10);
-                  const letraDia = DIAS_SEMANA[(new Date(anioActual, mesActual, d).getDay()+6)%7];
+                  const diaSemana = new Date(anioActual, mesActual, d).getDay(); // 0=dom, 6=sab
+                  const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+                  const letraDia = DIAS_SEMANA[(diaSemana+6)%7];
                   return (
                     <div key={d} style={{
                       margin:"3px 1px", borderRadius:6, height:32,
-                      background: esHoy ? "#1C5A66" : "#F0ECE3",
+                      background: esHoy ? "#1C5A66" : esFinDeSemana ? "#D8D8D8" : "#F0ECE3",
                       display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                      fontSize:9, fontWeight:700, color: esHoy ? "#fff" : "#8A8170",
+                      fontSize:9, fontWeight:700, color: esHoy ? "#fff" : esFinDeSemana ? "#999" : "#8A8170",
                     }}>
                       <span>{letraDia}</span>
                       <span style={{fontSize:10.5}}>{d}</span>
@@ -649,11 +655,13 @@ export default function App() {
                   <div key={`n-${persona}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{persona}</div>
                   {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                     const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                    const diaSemana = new Date(anioActual, mesActual, d).getDay();
+                    const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
                     const ev = solicitudes.find(s => s.nombre.trim().toLowerCase() === persona.trim().toLowerCase() && s.estado !== "rechazada" && dateRange(s.desde, s.hasta).includes(dateStr));
                     const t = ev ? TIPOS[ev.tipo] : null;
                     return (
                       <div key={d} title={ev ? `${t.label}` : ""}
-                        style={{margin:"3px 1px", borderRadius:6, background: t ? t.color : "transparent", border:"1px solid #F0ECE3", borderTop:"1px solid #EFEBDE"}}/>
+                        style={{margin:"3px 1px", borderRadius:6, background: t ? t.color : esFinDeSemana ? "#E8E8E8" : "transparent", border:`1px solid ${esFinDeSemana ? "#D8D8D8" : "#F0ECE3"}`, borderTop:`1px solid ${esFinDeSemana ? "#D8D8D8" : "#EFEBDE"}`}}/>
                     );
                   })}
                 </>))}
@@ -661,20 +669,26 @@ export default function App() {
                 {/* Fila fija de karp/suarez — siempre al final, celdas en blanco */}
                 {Object.keys(CUENTAS_COMPARTIDAS).map(cuenta => (<>
                   <div key={`n-${cuenta}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{NOMBRE_DISPLAY_COMPARTIDAS[cuenta] || cuenta}</div>
-                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
-                    <div key={d} style={{margin:"3px 1px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3", borderTop:"1px solid #EFEBDE"}}/>
-                  ))}
+                  {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
+                    const diaSemana = new Date(anioActual, mesActual, d).getDay();
+                    const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+                    return (
+                      <div key={d} style={{margin:"3px 1px", borderRadius:6, background: esFinDeSemana ? "#E8E8E8" : "transparent", border:`1px solid ${esFinDeSemana ? "#D8D8D8" : "#F0ECE3"}`, borderTop:`1px solid ${esFinDeSemana ? "#D8D8D8" : "#EFEBDE"}`}}/>
+                    );
+                  })}
                 </>))}
 
                 {/* Fila FUERA DE TURNO */}
                 <div style={{fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"2px solid #D4CEC0", display:"flex", alignItems:"center"}}>FUERA DE TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const diaSemana = new Date(anioActual, mesActual, d).getDay();
+                  const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
                   const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                   const superado = count > 4;
                   return (
-                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"2px solid #D4CEC0", background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
-                      {count > 0 ? count : ""}
+                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"2px solid #D4CEC0", background: esFinDeSemana ? "#E8E8E8" : superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: esFinDeSemana ? "transparent" : superado?"#fff": count>0?"#2B2620":"transparent"}}>
+                      {!esFinDeSemana && count > 0 ? count : ""}
                     </div>
                   );
                 })}
@@ -683,10 +697,12 @@ export default function App() {
                 <div style={{fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"1px solid #D4CEC0", display:"flex", alignItems:"center"}}>EN TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                  const diaSemana = new Date(anioActual, mesActual, d).getDay();
+                  const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
                   const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                   return (
-                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"1px solid #D4CEC0", background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
-                      {12 - count}
+                    <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"1px solid #D4CEC0", background: esFinDeSemana ? "#E8E8E8" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: esFinDeSemana ? "transparent" : "#1C5A66"}}>
+                      {!esFinDeSemana ? 12 - count : ""}
                     </div>
                   );
                 })}
