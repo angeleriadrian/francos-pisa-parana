@@ -30,6 +30,9 @@ const ADMINS = ["angeleri"];
 const CUENTAS_COMPARTIDAS = {
   "karp/suarez": ["Karp", "Suarez"],
 };
+const NOMBRE_DISPLAY_COMPARTIDAS = {
+  "karp/suarez": "Karp/Suarez",
+};
 
 const SALDO_INICIAL = {
   "angeleri": 30, "bestoso": 30, "manes": 30, "navarro": 30,
@@ -657,7 +660,7 @@ export default function App() {
 
                 {/* Fila fija de karp/suarez — siempre al final, celdas en blanco */}
                 {Object.keys(CUENTAS_COMPARTIDAS).map(cuenta => (<>
-                  <div key={`n-${cuenta}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{cuenta}</div>
+                  <div key={`n-${cuenta}`} style={{fontSize:12.5, color:"#2B2620", fontWeight:600, padding:"7px 8px 7px 0", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", borderTop:"1px solid #EFEBDE", display:"flex", alignItems:"center"}}>{NOMBRE_DISPLAY_COMPARTIDAS[cuenta] || cuenta}</div>
                   {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => (
                     <div key={d} style={{margin:"3px 1px", borderRadius:6, background:"transparent", border:"1px solid #F0ECE3", borderTop:"1px solid #EFEBDE"}}/>
                   ))}
@@ -743,7 +746,7 @@ export default function App() {
                         .sort((a,b) => a.desde < b.desde ? -1 : 1);
                       return (
                         <tr key={persona} style={{borderTop:"1px solid #EFEBDE"}}>
-                          <td style={{...td, fontWeight:600}}>{persona}</td>
+                        <td style={{...td, fontWeight:600}}>{NOMBRE_DISPLAY_COMPARTIDAS[persona.trim().toLowerCase()] || persona}</td>
                           <td style={td} colSpan={3}>{tramos.length > 0 ? tramos.map(s => `${s.quien||"?"}: ${fmt(s.desde)} a ${fmt(s.hasta)}`).join(" · ") : "Sin tramos este mes"}</td>
                         </tr>
                       );
