@@ -346,15 +346,18 @@ export default function App() {
         for (const mes of meses) {
           const nuevos = diasPedidos.filter(d => d.slice(0,7) === mes).length;
           if (form.tipo === "mensual") {
-            // Franco: suma con lo ya usado (franco + especial) no puede superar 10
             const yaUsados = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase() && (s.tipo === "mensual" || s.tipo === "especial")).flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.slice(0,7) === mes).length;
-            if (yaUsados + nuevos > 10) tipoFinal = "especial";
+            if (yaUsados + nuevos > 10) {
+              const [, m] = mes.split("-").map(Number);
+              setError(`En ${MESES[m-1]} ya tenés ${yaUsados} días entre Franco y Licencia especial. No podés agregar ${nuevos} días más — la suma no puede superar 10.`);
+              return;
+            }
           } else if (form.tipo === "especial") {
-            // Especial: solo bloquea si ya hay francos ese mes y la suma supera 10
             const francosEseMes = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase() && s.tipo === "mensual").flatMap(s => dateRange(s.desde, s.hasta)).filter(d => d.slice(0,7) === mes).length;
             if (francosEseMes > 0 && francosEseMes + nuevos > 10) {
               const [, m] = mes.split("-").map(Number);
-              setError(`En ${MESES[m-1]} ya tenés ${francosEseMes} días de Franco. Sumado a los ${nuevos} días de la Licencia especial supera el máximo de 10 días por mes.`); return;
+              setError(`En ${MESES[m-1]} ya tenés ${francosEseMes} días de Franco. Sumado a los ${nuevos} días de la Licencia especial supera el máximo de 10 días por mes.`);
+              return;
             }
           }
         }
