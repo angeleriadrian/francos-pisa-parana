@@ -330,8 +330,8 @@ export default function App() {
 
       if (form.tipo === "mensual" || form.tipo === "especial") {
         for (const dia of diasPedidos) {
-          const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
-          if (personasEseDia.size >= 4 && !personasEseDia.has(nombre)) {
+          const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
+          if (personasEseDia.size >= 4 && !personasEseDia.has(nombreNormal)) {
             setError(`No se puede pedir: el ${fmt(dia)} ya hay 4 personas con Franco o Licencia especial, que es el máximo permitido.`);
             return;
           }
