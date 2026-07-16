@@ -82,17 +82,19 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
   // Si estamos en 2026 desde julio en adelante, arrancamos con el saldo inicial cargado.
   if (anio === 2026 && mesNum >= 7) {
     const saldoBase = SALDO_INICIAL[clavePersona] ?? 0;
-    let balance = saldoBase;
+    let acumulado = saldoBase;
     for (let mes = 7; mes <= mesNum; mes++) {
       const claveMes = `${anio}-${String(mes).padStart(2, "0")}`;
       const usadoEseMes = activasPersona
         .flatMap(s => dateRange(s.desde, s.hasta))
         .filter(d => d.startsWith(claveMes)).length;
       const acreditado = mes === 7 ? 3 : mes === 12 ? 7 : 10;
-      if (mes > 7) balance = Math.min(30, balance + acreditado);
-      balance -= usadoEseMes;
+      const resteDeAcreditado = Math.min(usadoEseMes, acreditado);
+      const exceso = usadoEseMes - resteDeAcreditado;
+      const sobrante = acreditado - resteDeAcreditado;
+      acumulado = Math.min(30, acumulado + sobrante) - exceso;
     }
-    return balance;
+    return acumulado;
   }
 
   // Para enero/febrero/marzo: no se suman días nuevos pero sí se arrastra
@@ -120,22 +122,26 @@ function diasAcumulados(persona, solicitudes, anioRef, mesRef) {
       const usadoEseMes = activasPersona
         .flatMap(s => dateRange(s.desde, s.hasta))
         .filter(d => d.startsWith(claveMes)).length;
-      balance -= usadoEseMes; // no se suman días nuevos (acreditado = 0)
+      // enero/feb/mar no acreditan días, todo lo usado sale del acumulado
+      balance -= usadoEseMes;
     }
     return balance;
   }
 
   // Resto del año: cálculo normal desde enero.
-  let balance = 0;
+  let acumulado = 0;
   for (let mes = 1; mes <= mesNum; mes++) {
     const claveMes = `${anio}-${String(mes).padStart(2, "0")}`;
     const usadoEseMes = activasPersona
       .flatMap(s => dateRange(s.desde, s.hasta))
       .filter(d => d.startsWith(claveMes)).length;
     const acreditado = mes <= 3 ? 0 : mes === 7 ? 3 : mes === 12 ? 7 : 10;
-    balance = Math.min(30, balance + acreditado) - usadoEseMes;
+    const resteDeAcreditado = Math.min(usadoEseMes, acreditado);
+    const exceso = usadoEseMes - resteDeAcreditado;
+    const sobrante = acreditado - resteDeAcreditado;
+    acumulado = Math.min(30, acumulado + sobrante) - exceso;
   }
-  return balance;
+  return acumulado;
 }
 
 // ─── ESTILOS BASE ─────────────────────────────────────────────────────────────
