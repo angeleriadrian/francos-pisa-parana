@@ -598,36 +598,31 @@ export default function App() {
               <button onClick={mesSiguiente} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>›</button>
             </div>
             <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:4}}>
-              {DIAS_SEMANA.map((d, i) => (
-                <div key={d} style={{textAlign:"center", fontSize:11, color: i >= 5 ? "#BBBBBB" : "#A39A89", fontWeight:700, padding:"2px 0"}}>{d}</div>
-              ))}
+              {DIAS_SEMANA.map(d => <div key={d} style={{textAlign:"center", fontSize:11, color:"#A39A89", fontWeight:700, padding:"2px 0"}}>{d}</div>)}
             </div>
             <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2}}>
-              {diasDelMes.map((c, i) => {
-                const esFDS = c ? (new Date(anioActual, mesActual, c.d).getDay() === 0 || new Date(anioActual, mesActual, c.d).getDay() === 6) : false;
-                return (
-                  <div key={i} style={{minHeight:60, border: c?"1px solid #F0ECE0":"none", borderRadius:8, padding:"3px 3px", background: c ? (esFDS ? "#EFEFEF" : "#FCFAF5") : "transparent", overflow:"hidden"}}>
-                    {c && (
-                      <>
-                        <div style={{fontSize:10, color: esFDS ? "#BBBBBB" : "#8A8170", marginBottom:2, fontWeight: esFDS ? 600 : 400}}>{c.d}</div>
-                        {!esFDS && c.eventos.slice(0,2).map(ev => {
-                          const t = TIPOS[ev.tipo];
-                          const esCompartida = !!CUENTAS_COMPARTIDAS[ev.nombre.trim().toLowerCase()];
-                          return (
-                            <div key={ev.id} title={`${ev.nombre}${ev.quien?" ("+ev.quien+")":""} — ${t.label}`}
-                              style={esCompartida
-                                ? {fontSize:9, background:"transparent", color:"#5C5448", border:"1px solid #D9D2C4", borderRadius:4, padding:"1px 3px", marginBottom:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}
-                                : {fontSize:9, background:t.bg, color:t.color, borderRadius:4, padding:"1px 3px", marginBottom:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                              {esCompartida ? (ev.quien||ev.nombre) : ev.nombre.split(" ")[0]}
-                            </div>
-                          );
-                        })}
-                        {!esFDS && c.eventos.length > 2 && <div style={{fontSize:9, color:"#A39A89"}}>+{c.eventos.length-2}</div>}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {diasDelMes.map((c, i) => (
+                <div key={i} style={{minHeight:60, border: c?"1px solid #F0ECE0":"none", borderRadius:8, padding:"3px 3px", background: c?"#FCFAF5":"transparent", overflow:"hidden"}}>
+                  {c && (
+                    <>
+                      <div style={{fontSize:10, color:"#8A8170", marginBottom:2}}>{c.d}</div>
+                      {c.eventos.slice(0,2).map(ev => {
+                        const t = TIPOS[ev.tipo];
+                        const esCompartida = !!CUENTAS_COMPARTIDAS[ev.nombre.trim().toLowerCase()];
+                        return (
+                          <div key={ev.id} title={`${ev.nombre}${ev.quien?" ("+ev.quien+")":""} — ${t.label}`}
+                            style={esCompartida
+                              ? {fontSize:9, background:"transparent", color:"#5C5448", border:"1px solid #D9D2C4", borderRadius:4, padding:"1px 3px", marginBottom:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}
+                              : {fontSize:9, background:t.bg, color:t.color, borderRadius:4, padding:"1px 3px", marginBottom:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                            {esCompartida ? (ev.quien||ev.nombre) : ev.nombre.split(" ")[0]}
+                          </div>
+                        );
+                      })}
+                      {c.eventos.length > 2 && <div style={{fontSize:9, color:"#A39A89"}}>+{c.eventos.length-2}</div>}
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ) : (
