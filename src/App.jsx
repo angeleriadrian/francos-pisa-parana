@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText } from "lucide-react";
+import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText, Pencil } from "lucide-react";
 import { db } from "./firebase";
 import {
   collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, getDocs
@@ -173,6 +173,7 @@ export default function App() {
   const [avisoClave, setAvisoClave] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [editando, setEditando] = useState(null); // solicitud que se está editando
   const [modalAbierto, setModalAbierto] = useState(false);
   const [hoy] = useState(new Date());
   const [mesActual, setMesActual] = useState(hoy.getMonth());
@@ -291,14 +292,18 @@ export default function App() {
       setAviso(null);
 
       const diasPedidos = dateRange(form.desde, form.hasta);
-      const activas = solicitudes.filter(s => s.estado !== "rechazada");
+      // Al editar, excluimos la solicitud actual de los conteos para no bloquearse a sí misma
+      const activas = solicitudes.filter(s => s.estado !== "rechazada" && (!editando || s.id !== editando.id));
 
-      if (parejaCompartida && !form.quien) {
+      // ⚠️ TEMPORAL: Espinola sin restricciones
+      const esEspinolaTemp = nombreNormal.trim().toLowerCase() === "espinola";
+
+      if (!esEspinolaTemp && parejaCompartida && !form.quien) {
         setError(`Elegí quién de los dos (${parejaCompartida.join(" o ")}) está pidiendo esta licencia.`);
         return;
       }
 
-      if (parejaCompartida && form.tipo === "mensual") {
+      if (!esEspinolaTemp && parejaCompartida && form.tipo === "mensual") {
         const superpone = activas.some(s =>
           s.nombre === nombre && s.tipo === "mensual" && s.quien !== form.quien &&
           dateRange(s.desde, s.hasta).some(d => diasPedidos.includes(d))
@@ -309,14 +314,14 @@ export default function App() {
         }
       }
 
-      const diasYaPedidos = activas.filter(s => s.nombre === nombre).flatMap(s => dateRange(s.desde, s.hasta));
+      const diasYaPedidos = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase()).flatMap(s => dateRange(s.desde, s.hasta));
       const dup = diasPedidos.filter(d => diasYaPedidos.includes(d));
-      if (dup.length > 0) {
+      if (!esEspinolaTemp && dup.length > 0) {
         setError(`Ya tenés una licencia pedida para el ${fmt(dup[0])}. No podés pedir el mismo día dos veces.`);
         return;
       }
 
-      if (form.tipo === "mensual" && !parejaCompartida) {
+      if (!esEspinolaTemp && form.tipo === "mensual" && !parejaCompartida) {
         if (diasPedidos.length < 2) { setError("El Franco se pide por un mínimo de 2 días."); return; }
         const limite = new Date(); limite.setMonth(limite.getMonth() + 3);
         const fechaDesde = new Date(form.desde + "T00:00:00");
@@ -326,15 +331,15 @@ export default function App() {
         }
       }
 
-      if ((form.tipo === "navidad" || form.tipo === "anio_nuevo") && diasPedidos.some(d => d.slice(5,7) !== "12")) {
+      if (!esEspinolaTemp && (form.tipo === "navidad" || form.tipo === "anio_nuevo") && diasPedidos.some(d => d.slice(5,7) !== "12")) {
         setError(`${TIPOS[form.tipo].label} solo se puede pedir en diciembre.`); return;
       }
 
-      if (form.tipo === "especial" && diasPedidos.length <= 10) {
+      if (!esEspinolaTemp && form.tipo === "especial" && diasPedidos.length <= 10) {
         setError(`La licencia especial tiene que ser de más de 10 días. Pediste ${diasPedidos.length}.`); return;
       }
 
-      if (form.tipo === "mensual" || form.tipo === "especial") {
+      if (!esEspinolaTemp && (form.tipo === "mensual" || form.tipo === "especial")) {
         for (const dia of diasPedidos) {
           const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
           if (personasEseDia.size >= 4 && !personasEseDia.has(nombreNormal) && !parejaCompartida) {
@@ -347,7 +352,7 @@ export default function App() {
       let avisoCupo = null;
 
       let tipoFinal = form.tipo;
-      if (!parejaCompartida) {
+      if (!esEspinolaTemp && !parejaCompartida) {
         const meses = new Set(diasPedidos.map(d => d.slice(0, 7)));
         for (const mes of meses) {
           const nuevos = diasPedidos.filter(d => d.slice(0,7) === mes).length;
@@ -389,12 +394,18 @@ export default function App() {
         desde: form.desde,
         hasta: form.hasta,
         estado: "aprobada",
-        creada: new Date().toISOString(),
+        creada: editando ? editando.creada : new Date().toISOString(),
       };
-      const newId = uid();
-      await setDoc(doc(db, "solicitudes", newId), nueva);
+      const newId = editando ? editando.id : uid();
+      // Si estamos editando, borramos la vieja primero (si el id cambió) y guardamos la nueva
+      if (editando) {
+        await setDoc(doc(db, "solicitudes", editando.id), nueva);
+      } else {
+        await setDoc(doc(db, "solicitudes", newId), nueva);
+      }
 
       setModalAbierto(false);
+      setEditando(null);
       const fi = new Date(form.desde + "T00:00:00");
       setMesActual(fi.getMonth());
       setAnioActual(fi.getFullYear());
@@ -731,7 +742,15 @@ export default function App() {
                           <span style={{color:"#8A8170"}}>{s.quien?`${s.quien} · `:""}{t.label} · {fmt(s.desde)} a {fmt(s.hasta)}</span>
                           <span style={{color:"#B0BAB9", fontSize:11.5, marginLeft:"auto", whiteSpace:"nowrap"}}>{s.creada ? fmt(new Date(s.creada).toISOString()) : "—"}</span>
                           {!esSoloLectura && (esAdmin || s.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()) && (
-                            <button onClick={() => eliminarSolicitud(s.id)} title="Eliminar" style={iconBtn("#8A8170")}><Trash2 size={13}/></button>
+                            <div style={{display:"flex", gap:4}}>
+                              <button onClick={() => {
+                                setEditando(s);
+                                setForm({ tipo: s.tipo, desde: s.desde, hasta: s.hasta, quien: s.quien || "" });
+                                setError(null);
+                                setModalAbierto(true);
+                              }} title="Editar" style={iconBtn("#2D7A8A")}><Pencil size={13}/></button>
+                              <button onClick={() => eliminarSolicitud(s.id)} title="Eliminar" style={iconBtn("#8A8170")}><Trash2 size={13}/></button>
+                            </div>
                           )}
                         </div>
                       );
@@ -846,11 +865,11 @@ export default function App() {
 
       {/* Modal pedir licencia */}
       {modalAbierto && (
-        <div style={{position:"fixed", inset:0, background:"rgba(20,35,38,0.45)", backdropFilter:"blur(2px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16, zIndex:50}} onClick={() => setModalAbierto(false)}>
+        <div style={{position:"fixed", inset:0, background:"rgba(20,35,38,0.45)", backdropFilter:"blur(2px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16, zIndex:50}} onClick={() => { setModalAbierto(false); setEditando(null); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }}>
           <div onClick={e => e.stopPropagation()} style={{background:"#fff", borderRadius:20, padding:28, maxWidth:420, width:"100%", boxShadow:"0 30px 60px -16px rgba(20,40,45,0.35)"}}>
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
-              <div style={{fontFamily:"Georgia,serif", fontSize:20, fontWeight:700, color:"#1F2A2C"}}>Pedir licencia</div>
-              <button onClick={() => setModalAbierto(false)} style={{border:"none", background:"#F1EFE7", borderRadius:9, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#8A8170"}}><X size={17}/></button>
+              <div style={{fontFamily:"Georgia,serif", fontSize:20, fontWeight:700, color:"#1F2A2C"}}>{editando ? "Editar licencia" : "Pedir licencia"}</div>
+              <button onClick={() => { setModalAbierto(false); setEditando(null); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }} style={{border:"none", background:"#F1EFE7", borderRadius:9, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#8A8170"}}><X size={17}/></button>
             </div>
 
             {parejaCompartida && (
@@ -892,7 +911,7 @@ export default function App() {
 
             <button onClick={crearSolicitud} disabled={!form.desde || !form.hasta || enviando}
               style={{width:"100%", padding:"13px", background:(form.desde&&form.hasta&&!enviando)?"linear-gradient(135deg,#1C5A66,#2D7A8A)":"#D7DEDD", color:"#fff", border:"none", borderRadius:12, fontWeight:700, fontSize:15, cursor:(form.desde&&form.hasta&&!enviando)?"pointer":"default"}}>
-              {enviando ? "Enviando…" : "Enviar solicitud"}
+              {enviando ? "Enviando…" : editando ? "Guardar cambios" : "Enviar solicitud"}
             </button>
           </div>
         </div>
