@@ -173,7 +173,8 @@ export default function App() {
   const [avisoClave, setAvisoClave] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const [editando, setEditando] = useState(null); // solicitud que se está editando
+  const [editando, setEditando] = useState(null);
+  const [editandoDesdeBloqueado, setEditandoDesdeBloqueado] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [hoy] = useState(new Date());
   const [mesActual, setMesActual] = useState(hoy.getMonth());
@@ -295,15 +296,12 @@ export default function App() {
       // Al editar, excluimos la solicitud actual de los conteos para no bloquearse a sí misma
       const activas = solicitudes.filter(s => s.estado !== "rechazada" && (!editando || s.id !== editando.id));
 
-      // ⚠️ TEMPORAL: Espinola sin restricciones
-      const esEspinolaTemp = nombreNormal.trim().toLowerCase() === "espinola";
-
-      if (!esEspinolaTemp && parejaCompartida && !form.quien) {
+      if (parejaCompartida && !form.quien) {
         setError(`Elegí quién de los dos (${parejaCompartida.join(" o ")}) está pidiendo esta licencia.`);
         return;
       }
 
-      if (!esEspinolaTemp && parejaCompartida && form.tipo === "mensual") {
+      if (parejaCompartida && form.tipo === "mensual") {
         const superpone = activas.some(s =>
           s.nombre === nombre && s.tipo === "mensual" && s.quien !== form.quien &&
           dateRange(s.desde, s.hasta).some(d => diasPedidos.includes(d))
@@ -316,12 +314,12 @@ export default function App() {
 
       const diasYaPedidos = activas.filter(s => s.nombre.trim().toLowerCase() === nombreNormal.trim().toLowerCase()).flatMap(s => dateRange(s.desde, s.hasta));
       const dup = diasPedidos.filter(d => diasYaPedidos.includes(d));
-      if (!esEspinolaTemp && dup.length > 0) {
+      if (dup.length > 0) {
         setError(`Ya tenés una licencia pedida para el ${fmt(dup[0])}. No podés pedir el mismo día dos veces.`);
         return;
       }
 
-      if (!esEspinolaTemp && form.tipo === "mensual" && !parejaCompartida) {
+      if (form.tipo === "mensual" && !parejaCompartida) {
         if (diasPedidos.length < 2) { setError("El Franco se pide por un mínimo de 2 días."); return; }
         const limite = new Date(); limite.setMonth(limite.getMonth() + 3);
         const fechaDesde = new Date(form.desde + "T00:00:00");
@@ -331,15 +329,15 @@ export default function App() {
         }
       }
 
-      if (!esEspinolaTemp && (form.tipo === "navidad" || form.tipo === "anio_nuevo") && diasPedidos.some(d => d.slice(5,7) !== "12")) {
+      if ((form.tipo === "navidad" || form.tipo === "anio_nuevo") && diasPedidos.some(d => d.slice(5,7) !== "12")) {
         setError(`${TIPOS[form.tipo].label} solo se puede pedir en diciembre.`); return;
       }
 
-      if (!esEspinolaTemp && form.tipo === "especial" && diasPedidos.length <= 10) {
+      if (form.tipo === "especial" && diasPedidos.length <= 10) {
         setError(`La licencia especial tiene que ser de más de 10 días. Pediste ${diasPedidos.length}.`); return;
       }
 
-      if (!esEspinolaTemp && (form.tipo === "mensual" || form.tipo === "especial")) {
+      if (form.tipo === "mensual" || form.tipo === "especial") {
         for (const dia of diasPedidos) {
           const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
           if (personasEseDia.size >= 4 && !personasEseDia.has(nombreNormal) && !parejaCompartida) {
@@ -352,7 +350,7 @@ export default function App() {
       let avisoCupo = null;
 
       let tipoFinal = form.tipo;
-      if (!esEspinolaTemp && !parejaCompartida) {
+      if (!parejaCompartida) {
         const meses = new Set(diasPedidos.map(d => d.slice(0, 7)));
         for (const mes of meses) {
           const nuevos = diasPedidos.filter(d => d.slice(0,7) === mes).length;
@@ -406,6 +404,7 @@ export default function App() {
 
       setModalAbierto(false);
       setEditando(null);
+      setEditandoDesdeBloqueado(false);
       const fi = new Date(form.desde + "T00:00:00");
       setMesActual(fi.getMonth());
       setAnioActual(fi.getFullYear());
@@ -744,6 +743,14 @@ export default function App() {
                           {!esSoloLectura && (esAdmin || s.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()) && (
                             <div style={{display:"flex", gap:4}}>
                               <button onClick={() => {
+                                if (s.tipo === "especial") {
+                                  setError("Las licencias especiales no se pueden editar, solo eliminar.");
+                                  return;
+                                }
+                                const fechaDesde = new Date(s.desde + "T00:00:00");
+                                const horasHastaInicio = (fechaDesde.getTime() - Date.now()) / 3600000;
+                                const desdeBloqueado = s.tipo === "mensual" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && horasHastaInicio < 72;
+                                setEditandoDesdeBloqueado(desdeBloqueado);
                                 setEditando(s);
                                 setForm({ tipo: s.tipo, desde: s.desde, hasta: s.hasta, quien: s.quien || "" });
                                 setError(null);
@@ -865,11 +872,11 @@ export default function App() {
 
       {/* Modal pedir licencia */}
       {modalAbierto && (
-        <div style={{position:"fixed", inset:0, background:"rgba(20,35,38,0.45)", backdropFilter:"blur(2px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16, zIndex:50}} onClick={() => { setModalAbierto(false); setEditando(null); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }}>
+        <div style={{position:"fixed", inset:0, background:"rgba(20,35,38,0.45)", backdropFilter:"blur(2px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16, zIndex:50}} onClick={() => { setModalAbierto(false); setEditando(null); setEditandoDesdeBloqueado(false); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }}>
           <div onClick={e => e.stopPropagation()} style={{background:"#fff", borderRadius:20, padding:28, maxWidth:420, width:"100%", boxShadow:"0 30px 60px -16px rgba(20,40,45,0.35)"}}>
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
               <div style={{fontFamily:"Georgia,serif", fontSize:20, fontWeight:700, color:"#1F2A2C"}}>{editando ? "Editar licencia" : "Pedir licencia"}</div>
-              <button onClick={() => { setModalAbierto(false); setEditando(null); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }} style={{border:"none", background:"#F1EFE7", borderRadius:9, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#8A8170"}}><X size={17}/></button>
+              <button onClick={() => { setModalAbierto(false); setEditando(null); setEditandoDesdeBloqueado(false); setForm({ tipo:"vacaciones", desde:"", hasta:"", quien:"" }); }} style={{border:"none", background:"#F1EFE7", borderRadius:9, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#8A8170"}}><X size={17}/></button>
             </div>
 
             {parejaCompartida && (
@@ -899,13 +906,21 @@ export default function App() {
             <div style={{display:"flex", gap:10, marginBottom:16}}>
               <div style={{flex:1}}>
                 <label style={lbl}>Desde</label>
-                <input type="date" value={form.desde} onChange={e => setForm(f => ({...f, desde:e.target.value}))} style={inp}/>
+                <input type="date" value={form.desde}
+                  disabled={editandoDesdeBloqueado}
+                  onChange={e => setForm(f => ({...f, desde:e.target.value}))}
+                  style={{...inp, background: editandoDesdeBloqueado ? "#F0ECE3" : undefined, color: editandoDesdeBloqueado ? "#A39A89" : undefined}}/>
               </div>
               <div style={{flex:1}}>
                 <label style={lbl}>Hasta</label>
                 <input type="date" value={form.hasta} min={form.desde} onChange={e => setForm(f => ({...f, hasta:e.target.value}))} style={inp}/>
               </div>
             </div>
+            {editandoDesdeBloqueado && (
+              <div style={{background:"#E3EAF2", border:"1px solid #A9C0DA", color:"#3D5A80", padding:"9px 12px", borderRadius:10, marginBottom:14, fontSize:13}}>
+                La fecha de inicio ya está dentro de las 72hs — solo podés modificar la fecha de fin. El mínimo sigue siendo 2 días en total.
+              </div>
+            )}
 
             {error && <div style={{background:"#FAE9DD", border:"1px solid #E8B98C", color:"#C4622D", padding:"10px 12px", borderRadius:10, marginBottom:16, fontSize:13.5}}>{error}</div>}
 
