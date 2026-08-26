@@ -324,7 +324,8 @@ export default function App() {
         const limite = new Date(); limite.setMonth(limite.getMonth() + 3);
         const fechaDesde = new Date(form.desde + "T00:00:00");
         if (fechaDesde > limite) { setError("No se puede pedir Franco a más de 3 meses de hoy."); return; }
-        if ((fechaDesde.getTime() - Date.now()) / 3600000 < 72) {
+        // Solo validamos las 72hs si NO estamos editando con el desde bloqueado
+        if (!editandoDesdeBloqueado && (fechaDesde.getTime() - Date.now()) / 3600000 < 72) {
           setError(`No se puede pedir Franco: se necesitan al menos 72 horas de anticipación (${fmt(form.desde)}).`); return;
         }
       }
