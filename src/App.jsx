@@ -330,10 +330,6 @@ export default function App() {
         }
       }
 
-      if ((form.tipo === "navidad" || form.tipo === "anio_nuevo") && diasPedidos.some(d => d.slice(5,7) !== "12")) {
-        setError(`${TIPOS[form.tipo].label} solo se puede pedir en diciembre.`); return;
-      }
-
       if (form.tipo === "especial" && diasPedidos.length <= 10) {
         setError(`La licencia especial tiene que ser de más de 10 días. Pediste ${diasPedidos.length}.`); return;
       }
@@ -897,7 +893,16 @@ export default function App() {
             <label style={lbl}>Tipo</label>
             <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:7, marginBottom:16}}>
               {Object.entries(TIPOS).filter(([k]) => !parejaCompartida || ["mensual","navidad","anio_nuevo"].includes(k)).map(([k,t]) => (
-                <button key={k} onClick={() => setForm(f => ({...f, tipo:k}))}
+                <button key={k} onClick={() => {
+                    const anio = anioActual;
+                    if (k === "navidad") {
+                      setForm(f => ({...f, tipo:"navidad", desde:`${anio}-12-23`, hasta:`${anio}-12-25`}));
+                    } else if (k === "anio_nuevo") {
+                      setForm(f => ({...f, tipo:"anio_nuevo", desde:`${anio}-12-30`, hasta:`${anio+1}-01-01`}));
+                    } else {
+                      setForm(f => ({...f, tipo:k, desde:"", hasta:""}));
+                    }
+                  }}
                   style={{padding:"9px 6px", borderRadius:11, border: form.tipo===k?`2px solid ${t.color}`:"1.5px solid #E7E1D4", background: form.tipo===k?t.bg:"#fff", color: form.tipo===k?t.color:"#5C5448", fontSize:12.5, fontWeight:600, cursor:"pointer"}}>
                   {t.label}
                 </button>
@@ -908,16 +913,24 @@ export default function App() {
               <div style={{flex:1}}>
                 <label style={lbl}>Desde</label>
                 <input type="date" value={form.desde}
-                  disabled={editandoDesdeBloqueado}
+                  disabled={editandoDesdeBloqueado || form.tipo === "navidad" || form.tipo === "anio_nuevo"}
                   onChange={e => setForm(f => ({...f, desde:e.target.value}))}
-                  style={{...inp, background: editandoDesdeBloqueado ? "#F0ECE3" : undefined, color: editandoDesdeBloqueado ? "#A39A89" : undefined}}/>
+                  style={{...inp, background: (editandoDesdeBloqueado || form.tipo === "navidad" || form.tipo === "anio_nuevo") ? "#F0ECE3" : undefined, color: (editandoDesdeBloqueado || form.tipo === "navidad" || form.tipo === "anio_nuevo") ? "#A39A89" : undefined}}/>
               </div>
               <div style={{flex:1}}>
                 <label style={lbl}>Hasta</label>
-                <input type="date" value={form.hasta} min={form.desde} onChange={e => setForm(f => ({...f, hasta:e.target.value}))} style={inp}/>
+                <input type="date" value={form.hasta} min={form.desde}
+                  disabled={form.tipo === "navidad" || form.tipo === "anio_nuevo"}
+                  onChange={e => setForm(f => ({...f, hasta:e.target.value}))}
+                  style={{...inp, background: (form.tipo === "navidad" || form.tipo === "anio_nuevo") ? "#F0ECE3" : undefined, color: (form.tipo === "navidad" || form.tipo === "anio_nuevo") ? "#A39A89" : undefined}}/>
               </div>
             </div>
-            {editandoDesdeBloqueado && (
+            {(form.tipo === "navidad" || form.tipo === "anio_nuevo") && (
+              <div style={{background:"#E3EAF2", border:"1px solid #A9C0DA", color:"#3D5A80", padding:"9px 12px", borderRadius:10, marginBottom:14, fontSize:13}}>
+                {form.tipo === "navidad" ? "📅 Navidad: 23 al 25 de diciembre (fechas fijas)" : "📅 Año Nuevo: 30 de diciembre al 1 de enero (fechas fijas)"}
+              </div>
+            )}
+            {editandoDesdeBloqueado && form.tipo !== "navidad" && form.tipo !== "anio_nuevo" && (
               <div style={{background:"#E3EAF2", border:"1px solid #A9C0DA", color:"#3D5A80", padding:"9px 12px", borderRadius:10, marginBottom:14, fontSize:13}}>
                 La fecha de inicio ya está dentro de las 72hs — solo podés modificar la fecha de fin. El mínimo sigue siendo 2 días en total.
               </div>
