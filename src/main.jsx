@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 
 // Versión actual de la app — debe coincidir con public/version.json
-const VERSION_ACTUAL = '1.0.2';
+const VERSION_ACTUAL = '1.0.3';
 
 function mostrarModalActualizacion() {
   const overlay = document.createElement('div');
@@ -33,9 +33,12 @@ async function chequearVersion() {
   }
 }
 
-// Chequeamos versión al abrir y cada 5 minutos
+// Chequeamos versión al abrir, cada 1 minuto, y cuando la app vuelve al primer plano
 chequearVersion();
-setInterval(chequearVersion, 5 * 60 * 1000);
+setInterval(chequearVersion, 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') chequearVersion();
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
