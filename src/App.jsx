@@ -472,6 +472,44 @@ export default function App() {
   function mesAnterior() { if (mesActual === 0) { setMesActual(11); setAnioActual(a => a-1); } else setMesActual(m => m-1); }
   function mesSiguiente() { if (mesActual === 11) { setMesActual(0); setAnioActual(a => a+1); } else setMesActual(m => m+1); }
 
+  const exportarPDF = useCallback(async () => {
+    setExportando(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const el = document.getElementById("grilla-imprimible");
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth: el.scrollWidth,
+        width: el.scrollWidth,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin * 2;
+      const ratio = canvas.width / canvas.height;
+      let imgW = availW;
+      let imgH = imgW / ratio;
+      if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
+      const mes = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesActual];
+      pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
+      pdf.save(`Francos_PISA_${mes}_${anioActual}.pdf`);
+    } catch (e) {
+      alert("No se pudo generar el PDF: " + e.message);
+    } finally {
+      setExportando(false);
+    }
+  }, [mesActual, anioActual]);
+
   // ─── PANTALLA LOGIN ──────────────────────────────────────────────────────────
 
   if (!registrado) {
@@ -527,45 +565,6 @@ export default function App() {
       if (ac && !bc) return 1; if (!ac && bc) return -1;
       return a.localeCompare(b);
     });
-
-  const exportarPDF = useCallback(async () => {
-    setExportando(true);
-    try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const el = document.getElementById("grilla-imprimible");
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: el.scrollWidth,
-        width: el.scrollWidth,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      // A4 horizontal en mm
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 8;
-      const availW = pageW - margin * 2;
-      const availH = pageH - margin * 2;
-      const ratio = canvas.width / canvas.height;
-      let imgW = availW;
-      let imgH = imgW / ratio;
-      if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
-      const mes = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesActual];
-      pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
-      pdf.save(`Francos_PISA_${mes}_${anioActual}.pdf`);
-    } catch (e) {
-      alert("No se pudo generar el PDF: " + e.message);
-    } finally {
-      setExportando(false);
-    }
-  }, [mesActual, anioActual]);
 
   return (
     <div style={{minHeight:"100vh", background:"#F4F1EA", fontFamily:"system-ui,-apple-system,sans-serif"}}>
