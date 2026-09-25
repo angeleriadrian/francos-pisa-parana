@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText, Pencil } from "lucide-react";
+import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText, Pencil, Download } from "lucide-react";
 import { db } from "./firebase";
 import {
   collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, getDocs
@@ -634,11 +634,17 @@ export default function App() {
           </div>
         ) : (
           /* ── VISTA GRILLA ── */
-          <div style={{background:"#fff", borderRadius:18, padding:22, overflowX:"auto", boxShadow:"0 2px 16px -4px rgba(20,55,65,0.10)"}}>
+          <div id="grilla-imprimible" style={{background:"#fff", borderRadius:18, padding:22, overflowX:"auto", boxShadow:"0 2px 16px -4px rgba(20,55,65,0.10)"}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, minWidth:560}}>
               <button onClick={mesAnterior} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>‹</button>
               <div style={{fontFamily:"Georgia,serif", fontSize:19, fontWeight:700, color:"#2B2620"}}>{MESES[mesActual]} {anioActual}</div>
               <button onClick={mesSiguiente} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>›</button>
+            </div>
+            <div className="no-print" style={{display:"flex", justifyContent:"flex-end", marginBottom:12, minWidth:560}}>
+              <button onClick={() => window.print()}
+                style={{display:"flex", alignItems:"center", gap:6, background:"#1C5A66", color:"#fff", border:"none", borderRadius:10, padding:"8px 16px", fontWeight:600, fontSize:13, cursor:"pointer"}}>
+                <Download size={14}/> Exportar PDF
+              </button>
             </div>
 
             {personas.length === 0 ? (
