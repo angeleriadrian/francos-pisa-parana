@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 
 // Versión actual de la app — debe coincidir con public/version.json
-const VERSION_ACTUAL = '1.0.4';
+const VERSION_ACTUAL = '1.0.8';
 
 function mostrarModalActualizacion() {
   const overlay = document.createElement('div');
