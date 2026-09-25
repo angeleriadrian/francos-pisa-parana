@@ -480,28 +480,44 @@ export default function App() {
         import("jspdf"),
       ]);
       const el = document.getElementById("grilla-imprimible");
+
+      // Temporalmente eliminar overflow para capturar todo el contenido
+      const prevOverflow = el.style.overflowX;
+      el.style.overflowX = "visible";
+
+      const fullWidth = el.scrollWidth;
+      const fullHeight = el.scrollHeight;
+
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         backgroundColor: "#ffffff",
         scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: el.scrollWidth,
-        width: el.scrollWidth,
+        scrollY: 0,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        windowHeight: fullHeight,
       });
-      const imgData = canvas.toDataURL("image/png");
+
+      el.style.overflowX = prevOverflow;
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.85);
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 8;
+      const margin = 6;
       const availW = pageW - margin * 2;
       const availH = pageH - margin * 2;
       const ratio = canvas.width / canvas.height;
       let imgW = availW;
       let imgH = imgW / ratio;
       if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
+      // Centrar en la página
+      const x = (pageW - imgW) / 2;
+      const y = (pageH - imgH) / 2;
       const mes = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesActual];
-      pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
+      pdf.addImage(imgData, "JPEG", x, y, imgW, imgH);
       pdf.save(`Francos_PISA_${mes}_${anioActual}.pdf`);
     } catch (e) {
       alert("No se pudo generar el PDF: " + e.message);
