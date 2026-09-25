@@ -11,6 +11,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PISA Francos" />
+    <style>
+      @media print {
+        @page { size: landscape; margin: 8mm; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none !important; }
+        /* Ocultar todo el app y mostrar solo la grilla */
+        body * { visibility: hidden; }
+        #grilla-imprimible, #grilla-imprimible * { visibility: visible; }
+        #grilla-imprimible {
+          position: absolute;
+          left: 0; top: 0;
+          width: 100%;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          overflow: visible !important;
+        }
+        .no-print { display: none !important; visibility: hidden !important; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
