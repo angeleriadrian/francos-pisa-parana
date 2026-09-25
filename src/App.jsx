@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText, Pencil, Download } from "lucide-react";
 import { db } from "./firebase";
 import {
@@ -158,6 +158,7 @@ export default function App() {
   const [nombre, setNombre] = useState("");
   const [registrado, setRegistrado] = useState(false);
   const [vista, setVista] = useState("calendario");
+  const [exportando, setExportando] = useState(false);
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -527,6 +528,45 @@ export default function App() {
       return a.localeCompare(b);
     });
 
+  const exportarPDF = useCallback(async () => {
+    setExportando(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const el = document.getElementById("grilla-imprimible");
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth: el.scrollWidth,
+        width: el.scrollWidth,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      // A4 horizontal en mm
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin * 2;
+      const ratio = canvas.width / canvas.height;
+      let imgW = availW;
+      let imgH = imgW / ratio;
+      if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
+      const mes = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesActual];
+      pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
+      pdf.save(`Francos_PISA_${mes}_${anioActual}.pdf`);
+    } catch (e) {
+      alert("No se pudo generar el PDF: " + e.message);
+    } finally {
+      setExportando(false);
+    }
+  }, [mesActual, anioActual]);
+
   return (
     <div style={{minHeight:"100vh", background:"#F4F1EA", fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
@@ -635,15 +675,15 @@ export default function App() {
         ) : (
           /* ── VISTA GRILLA ── */
           <div id="grilla-imprimible" style={{background:"#fff", borderRadius:18, padding:22, overflowX:"auto", boxShadow:"0 2px 16px -4px rgba(20,55,65,0.10)"}}>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, minWidth:560}}>
-              <button onClick={mesAnterior} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>‹</button>
-              <div style={{fontFamily:"Georgia,serif", fontSize:19, fontWeight:700, color:"#2B2620"}}>{MESES[mesActual]} {anioActual}</div>
-              <button onClick={mesSiguiente} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>›</button>
-            </div>
-            <div className="no-print" style={{display:"flex", justifyContent:"flex-end", marginBottom:12, minWidth:560}}>
-              <button onClick={() => window.print()}
-                style={{display:"flex", alignItems:"center", gap:6, background:"#1C5A66", color:"#fff", border:"none", borderRadius:10, padding:"8px 16px", fontWeight:600, fontSize:13, cursor:"pointer"}}>
-                <Download size={14}/> Exportar PDF
+            <div style={{display:"flex", flexDirection:"column", alignItems:"center", marginBottom:16, minWidth:560, gap:10}}>
+              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%"}}>
+                <button onClick={mesAnterior} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>‹</button>
+                <div style={{fontFamily:"Georgia,serif", fontSize:19, fontWeight:700, color:"#2B2620"}}>{MESES[mesActual]} {anioActual}</div>
+                <button onClick={mesSiguiente} style={{border:"none", background:"#EEF3F2", borderRadius:10, padding:"7px 14px", cursor:"pointer", fontSize:17, color:"#1C5A66", fontWeight:700}}>›</button>
+              </div>
+              <button className="no-print" onClick={exportarPDF} disabled={exportando}
+                style={{display:"flex", alignItems:"center", gap:6, background: exportando ? "#8A8170" : "#1C5A66", color:"#fff", border:"none", borderRadius:10, padding:"7px 16px", fontWeight:600, fontSize:13, cursor: exportando ? "default" : "pointer"}}>
+                <Download size={13}/> {exportando ? "Generando…" : "Descargar PDF"}
               </button>
             </div>
 
