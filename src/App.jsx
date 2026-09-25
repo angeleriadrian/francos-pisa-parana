@@ -503,15 +503,20 @@ export default function App() {
       el.style.overflowX = prevOverflow;
 
       const imgData = canvas.toDataURL("image/jpeg", 0.85);
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      // Elegir orientación según proporción de la imagen
+      const esApaisada = canvas.width > canvas.height;
+      const orientation = esApaisada ? "landscape" : "portrait";
+      const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 6;
+      const margin = 8;
       const availW = pageW - margin * 2;
       const availH = pageH - margin * 2;
       const ratio = canvas.width / canvas.height;
+      // Siempre llenar el ancho disponible, ajustar alto proporcionalmente
       let imgW = availW;
       let imgH = imgW / ratio;
+      // Si el alto resultante excede el disponible, escalar por alto
       if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
       // Centrar en la página
       const x = (pageW - imgW) / 2;
