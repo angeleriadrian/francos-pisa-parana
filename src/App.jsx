@@ -40,6 +40,10 @@ const SALDO_INICIAL = {
   "ruiz diaz": 30, "romero": 6, "zunino": 30,
 };
 
+// Las vacaciones solo cuentan (y se limitan a un práctico) entre el 15 y el 31 de diciembre
+const esPeriodoVacacionesDic = (dateStr) => dateStr.slice(5, 7) === "12" && Number(dateStr.slice(8, 10)) >= 15;
+const cuentaEnTurno = (s, dateStr) => s.tipo !== "vacaciones" || esPeriodoVacacionesDic(dateStr);
+
 const TIPOS = {
   vacaciones: { label: "Vacaciones", color: "#1C8C6E", bg: "#E2F3EC", icon: Plane },
   especial:   { label: "Licencia especial", color: "#C4622D", bg: "#FAE9DD", icon: FileText },
@@ -328,6 +332,19 @@ export default function App() {
         // Solo validamos las 72hs si NO estamos editando con el desde bloqueado
         if (!editandoDesdeBloqueado && (fechaDesde.getTime() - Date.now()) / 3600000 < 72) {
           setError(`No se puede pedir Franco: se necesitan al menos 72 horas de anticipación (${fmt(form.desde)}).`); return;
+        }
+      }
+
+      if (form.tipo === "vacaciones") {
+        const diasDic = diasPedidos.filter(esPeriodoVacacionesDic);
+        const ocupado = diasDic.some(dia => activas.some(s =>
+          s.tipo === "vacaciones" &&
+          s.nombre.trim().toLowerCase() !== nombreNormal.trim().toLowerCase() &&
+          dateRange(s.desde, s.hasta).includes(dia)
+        ));
+        if (ocupado) {
+          setError("Ya hay un práctico con vacaciones en ese período (15–31 de diciembre). Solo se permite uno.");
+          return;
         }
       }
 
@@ -764,7 +781,7 @@ export default function App() {
                 <div style={{fontSize:10, color:"#8A8170", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"2px solid #D4CEC0", display:"flex", alignItems:"center", position:"sticky", left:0, zIndex:2, background:"#fff"}}>FUERA DE TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
+                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && cuentaEnTurno(s, dateStr) && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                   const superado = count > 4;
                   return (
                     <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"2px solid #D4CEC0", background: superado?"#C4622D":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color: superado?"#fff": count>0?"#2B2620":"transparent"}}>
@@ -777,7 +794,7 @@ export default function App() {
                 <div style={{fontSize:10, color:"#1C5A66", fontWeight:700, padding:"7px 8px 7px 0", borderTop:"1px solid #D4CEC0", display:"flex", alignItems:"center", position:"sticky", left:0, zIndex:2, background:"#fff"}}>EN TURNO</div>
                 {Array.from({length: daysInMonth(anioActual, mesActual)}, (_, i) => i+1).map(d => {
                   const dateStr = `${anioActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dateStr)).length;
+                  const count = solicitudes.filter(s => s.estado !== "rechazada" && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && cuentaEnTurno(s, dateStr) && dateRange(s.desde, s.hasta).includes(dateStr)).length;
                   return (
                     <div key={d} style={{margin:"3px 1px", borderRadius:6, borderTop:"1px solid #D4CEC0", background:"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#1C5A66"}}>
                       {12 - count}
