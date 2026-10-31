@@ -335,10 +335,11 @@ export default function App() {
         }
       }
 
-      if (form.tipo === "vacaciones") {
+      if (form.tipo === "vacaciones" && !parejaCompartida) {
         const diasDic = diasPedidos.filter(esPeriodoVacacionesDic);
         const ocupado = diasDic.some(dia => activas.some(s =>
           s.tipo === "vacaciones" &&
+          !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] &&
           s.nombre.trim().toLowerCase() !== nombreNormal.trim().toLowerCase() &&
           dateRange(s.desde, s.hasta).includes(dia)
         ));
