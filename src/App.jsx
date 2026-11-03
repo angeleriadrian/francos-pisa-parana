@@ -1,9 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar, Table2, Plus, X, Clock, Trash2, User, Plane, FileText, Pencil, Download } from "lucide-react";
-import { db } from "./firebase";
-import {
-  collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, getDocs
-} from "firebase/firestore";
+import { escucharSolicitudes, guardarSolicitud, borrarSolicitud, leerClaves, guardarClave } from "./supabase";
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 
@@ -199,10 +196,10 @@ export default function App() {
     } catch (e) { /* ignore */ }
   }, []);
 
-  // Suscripción en tiempo real a Firestore
+  // Suscripción en tiempo real a Supabase
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "solicitudes"), (snap) => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const unsub = escucharSolicitudes((filas) => {
+      const items = [...filas];
       items.sort((a, b) => (a.desde < b.desde ? 1 : -1));
       setSolicitudes(items);
       setCargando(false);
@@ -221,10 +218,7 @@ export default function App() {
 
   async function cargarClaves() {
     try {
-      const snap = await getDocs(collection(db, "claves"));
-      const mapa = {};
-      snap.forEach(d => { mapa[d.id] = d.data().clave; });
-      setClavesOverride(mapa);
+      setClavesOverride(await leerClaves());
     } catch (e) { /* seguimos con claves originales */ }
   }
 
@@ -246,7 +240,7 @@ export default function App() {
       return;
     }
     try {
-      await setDoc(doc(db, "claves", limpio), { clave: claveNuevaInput });
+      await guardarClave(limpio, claveNuevaInput);
       setClavesOverride(prev => ({ ...prev, [limpio]: claveNuevaInput }));
       setAvisoClave("Contraseña actualizada correctamente.");
       setClaveActualInput(""); setClaveNuevaInput(""); setClaveNuevaInput2("");
@@ -418,10 +412,12 @@ export default function App() {
       };
       const newId = editando ? editando.id : uid();
       // Si estamos editando, borramos la vieja primero (si el id cambió) y guardamos la nueva
-      if (editando) {
-        await setDoc(doc(db, "solicitudes", editando.id), nueva);
-      } else {
-        await setDoc(doc(db, "solicitudes", newId), nueva);
+      try {
+        await guardarSolicitud(newId, nueva);
+      } catch (e) {
+        console.error(e);
+        setError("No se pudo guardar la licencia. Verificá tu conexión y probá de nuevo.");
+        return;
       }
 
       setModalAbierto(false);
@@ -445,7 +441,7 @@ export default function App() {
       const normalizado = normalizar(s.nombre);
       if (s.nombre !== normalizado) {
         try {
-          await setDoc(doc(db, "solicitudes", s.id), { ...s, nombre: normalizado });
+          await guardarSolicitud(s.id, { ...s, nombre: normalizado });
           corregidos++;
         } catch (e) { console.error("Error corrigiendo", s.id, e); }
       }
@@ -464,7 +460,7 @@ export default function App() {
       }
     }
     try {
-      await deleteDoc(doc(db, "solicitudes", id));
+      await borrarSolicitud(id);
     } catch (e) { setError("No se pudo eliminar. Probá de nuevo."); }
   }
 
