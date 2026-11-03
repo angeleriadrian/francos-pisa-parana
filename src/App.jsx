@@ -353,11 +353,17 @@ export default function App() {
         setError(`La licencia especial tiene que ser de más de 10 días. Pediste ${diasPedidos.length}.`); return;
       }
 
-      if (form.tipo === "mensual" || form.tipo === "especial") {
-        for (const dia of diasPedidos) {
-          const personasEseDia = new Set(activas.filter(s => (s.tipo === "mensual" || s.tipo === "especial") && !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] && dateRange(s.desde, s.hasta).includes(dia)).map(s => s.nombre));
+      if (form.tipo === "mensual" || form.tipo === "especial" || form.tipo === "vacaciones") {
+        // Fuera de turno: Franco y Licencia especial siempre; Vacaciones solo del 15 al 31 de diciembre
+        const diasAControlar = form.tipo === "vacaciones" ? diasPedidos.filter(esPeriodoVacacionesDic) : diasPedidos;
+        for (const dia of diasAControlar) {
+          const personasEseDia = new Set(activas.filter(s =>
+            (s.tipo === "mensual" || s.tipo === "especial" || (s.tipo === "vacaciones" && esPeriodoVacacionesDic(dia))) &&
+            !CUENTAS_COMPARTIDAS[s.nombre.trim().toLowerCase()] &&
+            dateRange(s.desde, s.hasta).includes(dia)
+          ).map(s => s.nombre));
           if (personasEseDia.size >= 4 && !personasEseDia.has(nombreNormal) && !parejaCompartida) {
-            setError(`No se puede pedir: el ${fmt(dia)} ya hay 4 personas con Franco o Licencia especial, que es el máximo permitido.`);
+            setError(`No se puede pedir: el ${fmt(dia)} ya hay 4 personas fuera de turno (Franco, Licencia especial o Vacaciones), que es el máximo permitido.`);
             return;
           }
         }
